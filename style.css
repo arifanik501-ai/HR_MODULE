@@ -7,9 +7,9 @@
   --bg-dark: #0f172a;
   /* Slate 900 */
   --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  --glass-bg: rgba(30, 41, 59, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-bg: rgba(30, 41, 59, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --success: #10b981;
@@ -25,16 +25,149 @@ body {
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
+  transition: background 0.5s ease-in-out;
 }
 
 /* Glassmorphism Utilities */
 .glass-panel {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   border-radius: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Sidebar specific smooth transitions */
+.sidebar-link {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  transition: left 0.5s ease;
+}
+
+.sidebar-link:hover::before {
+  left: 100%;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+  background: rgba(79, 70, 229, 0.15);
+  color: #fff;
+  border-right: 3px solid var(--primary);
+  box-shadow: inset 0 0 20px rgba(79, 70, 229, 0.1);
+}
+
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.card-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px transparent;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.card-hover:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.5), 0 10px 20px -5px rgba(79, 70, 229, 0.3);
+  z-index: 10;
+}
+
+.card-hover:hover::after {
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.4);
+}
+
+/* Fade in up animation for page load */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger children animations */
+.stagger-1 {
+  animation-delay: 0.1s;
+}
+
+.stagger-2 {
+  animation-delay: 0.2s;
+}
+
+.stagger-3 {
+  animation-delay: 0.3s;
+}
+
+.stagger-4 {
+  animation-delay: 0.4s;
+}
+
+/* Modal Entrance */
+@keyframes modalIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-in {
+  animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Button hover glows */
+button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Chart constraints */
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+#emptyState {
+  backdrop-filter: blur(12px);
+  transition: opacity 0.5s ease;
 }
 
 /* Animated subtle background blobs */
@@ -418,4 +551,43 @@ body.theme-yellow .top4-row {
 
 body.theme-yellow .top4-row:hover {
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.6) 0%, transparent 100%) !important;
+}
+
+/* Calendar Tooltip Overrides for Light Theme */
+body.theme-yellow .cal-tooltip {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.theme-yellow .cal-tooltip-arrow {
+  border-top-color: #ffffff !important;
+}
+
+/* Clock Widget Light Theme Overrides */
+body.theme-yellow .clock-widget .bg-slate-800\/80 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08), inset 0 2px 5px rgba(0, 0, 0, 0.02) !important;
+}
+
+body.theme-yellow .clock-widget .text-gray-400 {
+  color: #0f172a !important;
+}
+
+body.theme-yellow .clock-widget #hourHand {
+  background-color: #1e293b !important;
+}
+
+body.theme-yellow .clock-widget #minHand {
+  background-color: #475569 !important;
+}
+
+body.theme-yellow .clock-widget .text-white {
+  color: #0f172a !important;
+}
+
+body.theme-yellow .clock-widget .text-indigo-200\/80 {
+  color: #4f46e5 !important;
 }

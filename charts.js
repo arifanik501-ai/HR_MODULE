@@ -20,12 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function updateChartThemes(isYellow) {
-        Chart.defaults.color = isYellow ? '#000000' : '#94a3b8';
+        Chart.defaults.color = isYellow ? '#000000' : '#ffffff';
         Chart.defaults.scale.grid.color = isYellow ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
-        Chart.defaults.plugins.tooltip.backgroundColor = isYellow ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)';
+        Chart.defaults.plugins.tooltip.backgroundColor = isYellow ? 'rgba(255, 255, 255, 1)' : 'rgba(15, 23, 42, 0.95)';
         Chart.defaults.plugins.tooltip.titleColor = isYellow ? '#000000' : '#fff';
         Chart.defaults.plugins.tooltip.bodyColor = isYellow ? '#000000' : '#cbd5e1';
-        Chart.defaults.plugins.tooltip.borderColor = isYellow ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+        Chart.defaults.plugins.tooltip.borderColor = isYellow ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.1)';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
 
         if (chartInstances.bar) chartInstances.bar.update();
         if (chartInstances.line) chartInstances.line.update();
@@ -616,8 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
             '#f43f5e'  // Rose
         ];
 
-        document.getElementById('pieCenterText').innerText = kpis.totalActiveBranches;
-
         chartInstances.pie = new Chart(ctxPie, {
             type: 'doughnut',
             data: {
@@ -644,7 +643,38 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 }
-            }
+            },
+            plugins: [{
+                id: 'centerTextPlugin',
+                beforeDraw: function (chart) {
+                    const width = chart.width;
+                    const height = chart.height;
+                    const ctx = chart.ctx;
+
+                    ctx.restore();
+                    // dynamically size font based on canvas height
+                    const fontSize = (height / 120).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em Outfit, sans-serif";
+                    ctx.textBaseline = "middle";
+
+                    // Match theme color
+                    ctx.fillStyle = document.body.classList.contains('theme-yellow') ? '#000000' : '#ffffff';
+
+                    const text = kpis.totalActiveBranches.toString();
+                    const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                    const textY = height / 2 - 10;
+
+                    ctx.fillText(text, textX, textY);
+
+                    ctx.font = "500 " + (fontSize * 0.4).toFixed(2) + "em Outfit, sans-serif";
+                    ctx.fillStyle = document.body.classList.contains('theme-yellow') ? '#64748b' : '#94a3b8';
+                    const text2 = "Sections";
+                    const text2X = Math.round((width - ctx.measureText(text2).width) / 2);
+
+                    ctx.fillText(text2, text2X, textY + 25);
+                    ctx.save();
+                }
+            }]
         });
     }
 
@@ -669,8 +699,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         filteredEmployees.sort((a, b) => {
-            const indexA = pinnedEmployees.indexOf(a.name.toLowerCase());
-            const indexB = pinnedEmployees.indexOf(b.name.toLowerCase());
+            const indexA = pinnedEmployees.indexOf(a.name.toLowerCase().trim());
+            const indexB = pinnedEmployees.indexOf(b.name.toLowerCase().trim());
 
             if (indexA !== -1 && indexB !== -1) return indexA - indexB;
             if (indexA !== -1) return -1;
@@ -685,7 +715,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentRows.forEach((emp, index) => {
             const absoluteIndex = startIndex + index;
-            const isTop4 = absoluteIndex < 4;
+            // Only apply the gold highlight if they are explicitly in the pinned list
+            const isTop4 = pinnedEmployees.includes(emp.name.toLowerCase().trim());
 
             const tr = document.createElement('tr');
             tr.className = "hover:bg-slate-800/50 transition-colors group cursor-pointer relative" + (isTop4 ? " top4-row" : "");
@@ -1026,10 +1057,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <!-- Tooltip -->
                     <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-max">
-                        <div class="bg-slate-800 text-white text-xs px-3 py-1.5 rounded shadow-xl border border-white/10 whitespace-pre-wrap text-center">
+                        <div class="cal-tooltip bg-slate-800 text-white text-xs px-3 py-1.5 rounded shadow-xl border border-white/10 whitespace-pre-wrap text-center relative z-10">
                             ${toolTipText}
                         </div>
-                        <div class="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-slate-800/80"></div>
+                        <div class="cal-tooltip-arrow absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-slate-800/80"></div>
                     </div>
                 `;
                 grid.appendChild(dayBox);
@@ -1169,5 +1200,45 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.classList.add('hidden');
         }, 300);
     };
+
+    // --- Clock Widget Logic ---
+    function initClock() {
+        const hourHand = document.getElementById('hourHand');
+        const minHand = document.getElementById('minHand');
+        const secHand = document.getElementById('secHand');
+        const digitalClock = document.getElementById('digitalClock');
+
+        if (!hourHand) return; // Guard clause if elements are missing
+
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            let seconds = now.getSeconds();
+            let milliseconds = now.getMilliseconds();
+
+            // Digital Clock
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12; // 12-hour format
+            const displayMin = minutes < 10 ? '0' + minutes : minutes;
+            const displaySec = seconds < 10 ? '0' + seconds : seconds;
+            digitalClock.innerText = `${displayHours}:${displayMin}:${displaySec} ${ampm}`;
+
+            // Analogue Clock (Smooth movement using milliseconds for seconds)
+            const secDeg = ((seconds + milliseconds / 1000) / 60) * 360;
+            const minDeg = ((minutes + seconds / 60) / 60) * 360;
+            const hourDeg = ((hours % 12 + minutes / 60) / 12) * 360;
+
+            secHand.style.transform = `rotate(${secDeg}deg)`;
+            minHand.style.transform = `rotate(${minDeg}deg)`;
+            hourHand.style.transform = `rotate(${hourDeg}deg)`;
+
+            requestAnimationFrame(updateClock);
+        }
+
+        updateClock();
+    }
+
+    initClock(); // Start the clock
 
 });

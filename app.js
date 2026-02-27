@@ -1,4 +1,41 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ---- Firebase Setup (UMD versions for file:// compatibility without cors issues) ----
+    const firebaseConfig = {
+        apiKey: "AIzaSyBcjbR7Qu7M-RnHUtLJ9zeehILqQHYLw4E",
+        authDomain: "whatsapp-c10ef.firebaseapp.com",
+        databaseURL: "https://whatsapp-c10ef-default-rtdb.firebaseio.com",
+        projectId: "whatsapp-c10ef",
+        storageBucket: "whatsapp-c10ef.firebasestorage.app",
+        messagingSenderId: "675053106773",
+        appId: "1:675053106773:web:b7078468691a07ecfec6dc",
+        measurementId: "G-89Z8WBJ3R0"
+    };
+
+    let db;
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+    } catch (e) {
+        console.error("Firebase init failed:", e);
+    }
+
+    // Expose pushing mechanism globally inside the closure
+    window.pushToFirebase = async function (processedData) {
+        try {
+            processedData._lastUpdate = Date.now();
+            await db.ref('attendanceData').set(processedData);
+            console.log("Data successfully pushed to Firebase RTDB.");
+            return true;
+        } catch (error) {
+            console.error("Firebase push failed:", error);
+            alert("Firebase write failed: " + error.message);
+            return false;
+        }
+    };
+    // -----------------------------------------------------------------------------------
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const errorMessage = document.getElementById('errorMessage');
@@ -17,6 +54,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let processedData = null;
     let mappedColumns = null;
+
+    // Password Protection Logic
+    const ADMIN_PASSWORD = "15387";
+    const passwordModal = document.getElementById('passwordModal');
+    const closePasswordModal = document.getElementById('closePasswordModal');
+    const adminPasswordInput = document.getElementById('adminPassword');
+    const btnSubmitPassword = document.getElementById('btnSubmitPassword');
+    const passwordError = document.getElementById('passwordError');
+
+    let isUnlocked = false;
+    let pendingFiles = null;
+
+    function showPasswordModal() {
+        passwordModal.classList.remove('hidden');
+        // small delay to allow display:block to apply before animating opacity
+        setTimeout(() => {
+            passwordModal.classList.remove('opacity-0');
+            passwordModal.querySelector('#passwordModalContent').classList.remove('scale-95');
+            adminPasswordInput.focus();
+        }, 10);
+    }
+
+    function hidePasswordModal() {
+        passwordModal.classList.add('opacity-0');
+        passwordModal.querySelector('#passwordModalContent').classList.add('scale-95');
+        setTimeout(() => {
+            passwordModal.classList.add('hidden');
+            adminPasswordInput.value = '';
+            passwordError.classList.add('hidden');
+        }, 300);
+    }
+
+    function verifyPassword() {
+        if (adminPasswordInput.value === ADMIN_PASSWORD) {
+            isUnlocked = true;
+            hidePasswordModal();
+            if (pendingFiles) {
+                handleFiles(pendingFiles);
+                pendingFiles = null;
+            } else {
+                // If they clicked the dropzone to browse, trigger the file input now
+                fileInput.click();
+            }
+        } else {
+            passwordError.classList.remove('hidden');
+            adminPasswordInput.value = '';
+            adminPasswordInput.focus();
+        }
+    }
+
+    closePasswordModal.addEventListener('click', () => {
+        hidePasswordModal();
+        pendingFiles = null; // clear any pending drops
+    });
+
+    btnSubmitPassword.addEventListener('click', verifyPassword);
+    adminPasswordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') verifyPassword();
+    });
+
+    // Intercept clicks on the dropzone
+    dropZone.addEventListener('click', (e) => {
+        // Prevent default file input click if locked
+        if (!isUnlocked) {
+            e.preventDefault();
+            showPasswordModal();
+        }
+    });
+
+    // We must prevent the default click on fileInput itself if not unlocked.
+    // However, the dropZone click already triggers fileInput since fileInput is inside it.
+    // Instead of absolute positioning overlay, we just intercept the drop and change events.
 
     // Drag and Drop Events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -37,17 +146,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dropZone.addEventListener('drop', handleDrop, false);
+
+    // File input changes when a file is selected via browse
     fileInput.addEventListener('change', handleFileSelect, false);
 
     function handleDrop(e) {
         const dt = e.dataTransfer;
         const files = dt.files;
-        handleFiles(files);
+        if (!isUnlocked) {
+            pendingFiles = files;
+            showPasswordModal();
+        } else {
+            handleFiles(files);
+        }
     }
 
     function handleFileSelect(e) {
         const files = e.target.files;
-        handleFiles(files);
+        if (!isUnlocked) {
+            // Unlikely to happen if we intercept click, but just in case
+            pendingFiles = files;
+            showPasswordModal();
+        } else {
+            handleFiles(files);
+        }
     }
 
     function handleFiles(files) {
@@ -473,7 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCancel.onclick = resetUI;
     }
 
-    function finalizeAndRedirect() {
+    async function finalizeAndRedirect() {
         // Save processed data to local storage
         try {
             localStorage.setItem('attendanceDashboardData', JSON.stringify(processedData));
@@ -481,12 +603,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btnProceed.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
             btnProceed.classList.add('opacity-80', 'cursor-not-allowed');
 
-            // Push to Firebase RTDB asynchronously
+            // Push to Firebase RTDB asynchronously and wait for it
             if (typeof window.pushToFirebase === 'function') {
-                window.pushToFirebase(processedData).then(success => {
-                    let msg = success ? "Synced to cloud!" : "Local mode (Cloud sync failed)";
-                    btnProceed.innerHTML = '<i class="fa-solid fa-check"></i> ' + msg;
-                });
+                const success = await window.pushToFirebase(processedData);
+                let msg = success ? "Synced to cloud!" : "Local mode (Cloud sync failed)";
+                btnProceed.innerHTML = '<i class="fa-solid fa-check"></i> ' + msg;
             }
 
             // Redirect to dashboard page
