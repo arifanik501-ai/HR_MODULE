@@ -50,6 +50,13 @@
 </head>
 
 <body class="antialiased text-gray-100 flex h-screen overflow-hidden bg-slate-900">
+    <script>
+        // Immediately apply time-based theme to prevent FOUC
+        const hour = new Date().getHours();
+        if (hour >= 6 && hour < 18) {
+            document.body.classList.add('theme-yellow');
+        }
+    </script>
 
     <!-- Background Blobs -->
     <div class="bg-blobs">
@@ -317,8 +324,8 @@
                 </a>
             </div>
             <div class="flex items-center gap-3">
-                <img src="https://ui-avatars.com/api/?name=Arif+Ahmed+Anik&background=4F46E5&color=fff" alt="User"
-                    class="w-9 h-9 rounded-full ring-2 ring-indigo-500/50">
+                <img src="arif.jpg" alt="Arif Ahmed Anik"
+                    class="w-9 h-9 object-cover rounded-full ring-2 ring-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.6)]">
                 <div>
                     <p class="text-sm font-medium uppercase">Arif Ahmed Anik</p>
                     <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Assistant Engineer</p>

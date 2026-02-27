@@ -10,12 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.toggleTheme = function () {
         const isYellow = document.body.classList.toggle('theme-yellow');
-        localStorage.setItem('theme', isYellow ? 'yellow' : 'dark');
-        const themeBtn = document.getElementById('themeToggleBtn');
-        if (themeBtn) {
-            themeBtn.querySelector('.fa-sun').classList.toggle('hidden', isYellow);
-            themeBtn.querySelector('.fa-moon').classList.toggle('hidden', !isYellow);
-        }
+        updateThemeToggleButton(isYellow);
         updateChartThemes(isYellow);
     };
 
@@ -33,15 +28,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (chartInstances.pie) chartInstances.pie.update();
     }
 
-    // Apply saved theme on load
-    if (localStorage.getItem('theme') === 'yellow') {
-        document.body.classList.add('theme-yellow');
-        const themeBtn = document.getElementById('themeToggleBtn');
-        if (themeBtn) {
-            themeBtn.querySelector('.fa-sun').classList.add('hidden');
-            themeBtn.querySelector('.fa-moon').classList.remove('hidden');
+    // Automated time-based theming (Overrides localStorage)
+    function applyTimeBasedTheme() {
+        const currentHour = new Date().getHours();
+        // Light theme from 6:00 AM to 5:59 PM. Dark theme from 6:00 PM to 5:59 AM.
+        const isDaytime = currentHour >= 6 && currentHour < 18;
+
+        const isCurrentlyYellow = document.body.classList.contains('theme-yellow');
+
+        if (isDaytime && !isCurrentlyYellow) {
+            document.body.classList.add('theme-yellow');
+            updateThemeToggleButton(true);
+        } else if (!isDaytime && isCurrentlyYellow) {
+            document.body.classList.remove('theme-yellow');
+            updateThemeToggleButton(false);
         }
     }
+
+    function updateThemeToggleButton(isYellow) {
+        const themeBtn = document.getElementById('themeToggleBtn');
+        if (themeBtn) {
+            themeBtn.querySelector('.fa-sun').classList.toggle('hidden', isYellow);
+            themeBtn.querySelector('.fa-moon').classList.toggle('hidden', !isYellow);
+        }
+    }
+
+    // Apply time-based theme on load
+    applyTimeBasedTheme();
+
+    // Check theme every minute just in case user stays on the page through the 6:00 boundary
+    setInterval(applyTimeBasedTheme, 60000);
 
     // Load data from localStorage
     const rawData = localStorage.getItem('attendanceDashboardData');
