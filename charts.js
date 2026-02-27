@@ -739,9 +739,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.style.animation = `fade-in 0.3s ease-out ${index * 0.05}s both`;
             tr.onclick = () => openCalendarModal(emp);
 
-            // Generate Avatar Initials
+            // Generate Avatar Initials or Photo
+            const isArif = emp.name.toLowerCase().trim() === 'arif ahmed anik';
             const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
             const avatarColor = getAvatarColor(emp.name);
+
+            const avatarHtml = isArif
+                ? `<img src="arif.jpg" alt="${emp.name}" class="w-8 h-8 rounded-full object-cover ring-2 ring-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]">`
+                : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-inner" style="background-color: ${avatarColor}">${initials}</div>`;
 
             // Format Rate Status Indicator
             const rate = parseFloat(emp.attendanceRate);
@@ -751,9 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tr.innerHTML = `
                 <td class="p-4 flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-inner" style="background-color: ${avatarColor}">
-                        ${initials}
-                    </div>
+                    ${avatarHtml}
                     <div>
                         <p class="text-sm font-medium text-white group-hover:text-indigo-300 transition-colors">${emp.name}</p>
                         <p class="text-xs text-gray-500">${emp.id}</p>
