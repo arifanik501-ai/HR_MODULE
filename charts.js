@@ -981,9 +981,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('calEmpId').innerText = `${emp.id} • ${emp.branch}`;
 
         const avatar = document.getElementById('calAvatar');
-        const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        avatar.style.backgroundColor = getAvatarColor(emp.name);
-        avatar.innerText = initials;
+        const isArif = emp.name.toLowerCase().trim() === 'arif ahmed anik';
+
+        if (isArif) {
+            avatar.style.backgroundColor = 'transparent';
+            avatar.innerHTML = `<img src="arif.jpg" alt="${emp.name}" class="w-full h-full rounded-full object-cover ring-2 ring-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)]">`;
+        } else {
+            const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            avatar.style.backgroundColor = getAvatarColor(emp.name);
+            avatar.innerHTML = initials;
+        }
 
         // Render Grid
         const grid = document.getElementById('calendarGrid');
