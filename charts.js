@@ -1222,6 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Clock Widget Logic ---
     function initClock() {
+        // ... (existing code remains unchanged)
         const hourHand = document.getElementById('hourHand');
         const minHand = document.getElementById('minHand');
         const secHand = document.getElementById('secHand');
@@ -1259,5 +1260,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initClock(); // Start the clock
+
+    // --- Modal Backdrop Click-to-Close Logic ---
+    window.addEventListener('click', (e) => {
+        const lateModal = document.getElementById('lateModal');
+        const calendarModal = document.getElementById('calendarModal');
+        const statsModal = document.getElementById('statsModal');
+        const companyCalendarModal = document.getElementById('companyCalendarModal');
+
+        // Check if the click occurred directly on the modal container background (not the children)
+        if (e.target === lateModal) window.closeLateModal();
+        if (e.target === calendarModal) window.closeCalendarModal();
+        if (e.target === statsModal) window.closeStatsModal();
+
+        // The company calendar has inline closure logic, trigger its button if present
+        if (e.target === companyCalendarModal) {
+            const closeBtn = document.getElementById('closeCompanyCalendar');
+            if (closeBtn) closeBtn.click();
+        }
+    });
 
 });
