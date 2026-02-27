@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendanceIQ - Enterprise Dashboard</title>
+    <!-- Tailwind CSS (via CDN for client-side only processing) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="antialiased flex items-center justify-center min-h-screen p-4">
+
+    <!-- Background Animated Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="glass-panel w-full max-w-3xl p-8 md:p-12 relative overflow-hidden flex flex-col items-center">
+        <!-- Header -->
+        <div class="text-center mb-10 w-full animate-fade-in">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-chart-pie text-2xl text-white"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Attendance<span class="text-indigo-400">IQ</span></h1>
+            </div>
+            <p class="text-gray-400 text-sm md:text-base max-w-md mx-auto">Upload your employee attendance sheet to generate intelligent analytics instantly.</p>
+        </div>
+
+        <!-- Upload Container -->
+        <div id="uploadContainer" class="w-full">
+            <div id="dropZone" class="upload-area rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group">
+                <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".xlsx, .xls, .csv">
+                
+                <div class="upload-icon w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center mb-6 shadow-xl border border-white/5">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 group-hover:text-indigo-300 transition-colors"></i>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-2 text-white group-hover:text-indigo-200 transition-colors">Drag & Drop your Excel file</h3>
+                <p class="text-sm text-gray-400 mb-6 text-center">or click to browse from your computer</p>
+                
+                <div class="flex gap-4">
+                    <span class="px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700 text-xs text-gray-300 flex items-center gap-1.5"><i class="fa-regular fa-file-excel text-green-500"></i> .xlsx</span>
+                    <span class="px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700 text-xs text-gray-300 flex items-center gap-1.5"><i class="fa-regular fa-file-excel text-green-500"></i> .xls</span>
+                </div>
+            </div>
+            
+            <div id="errorMessage" class="hidden mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+                <i class="fa-solid fa-circle-exclamation text-red-500 mt-0.5"></i>
+                <div>
+                    <h4 class="text-sm font-semibold text-red-400">Upload Error</h4>
+                    <p id="errorText" class="text-xs text-red-300 mt-1">Please select a valid Excel file.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading / Processing State -->
+        <div id="processingState" class="hidden flex-col items-center justify-center w-full py-12 animate-fade-in">
+            <div class="relative w-24 h-24 flex items-center justify-center mb-6">
+                <!-- Outer spinning rings -->
+                <div class="absolute inset-0 rounded-full border-t-2 border-indigo-500 animate-spin" style="animation-duration: 1.5s;"></div>
+                <div class="absolute inset-2 rounded-full border-r-2 border-pink-500 animate-spin" style="animation-duration: 2s; animation-direction: reverse;"></div>
+                <div class="absolute inset-4 rounded-full border-b-2 border-purple-500 animate-spin" style="animation-duration: 1s;"></div>
+                <!-- Center icon -->
+                <i class="fa-solid fa-microchip text-2xl text-white"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">Analyzing Data</h3>
+            <p id="processingText" class="text-sm text-gray-400">Parsing Excel rows and mapping columns...</p>
+            
+            <!-- Progress bar -->
+            <div class="w-full max-w-sm h-1.5 bg-slate-800 rounded-full mt-6 overflow-hidden">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 w-0 transition-all duration-300 ease-out"></div>
+            </div>
+        </div>
+        
+        <!-- Preview Container -->
+        <div id="previewContainer" class="hidden w-full animate-fade-in">
+            <div class="flexitems-center justify-between mb-4">
+                <h3 class="text-xl font-semibold text-white">Data Preview</h3>
+                <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium border border-green-500/20 flex items-center gap-1.5"><i class="fa-solid fa-check-circle"></i> Validated</span>
+            </div>
+            
+            <div class="overflow-x-auto rounded-xl border border-white/10 mb-6 bg-slate-900/50">
+                <table class="w-full text-left preview-table">
+                    <thead id="previewThead">
+                        <!-- Populated by JS -->
+                    </thead>
+                    <tbody id="previewTbody" class="divide-y divide-white/5">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button id="btnCancel" class="px-5 py-2.5 rounded-xl border border-slate-700 text-sm font-medium hover:bg-slate-800 transition-colors">Cancel</button>
+                <button id="btnProceed" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2">
+                    Generate Dashboard <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SheetJS for processing Excel files -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Firebase SDK Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcjbR7Qu7M-RnHUtLJ9zeehILqQHYLw4E",
+            authDomain: "whatsapp-c10ef.firebaseapp.com",
+            databaseURL: "https://whatsapp-c10ef-default-rtdb.firebaseio.com",
+            projectId: "whatsapp-c10ef",
+            storageBucket: "whatsapp-c10ef.firebasestorage.app",
+            messagingSenderId: "675053106773",
+            appId: "1:675053106773:web:b7078468691a07ecfec6dc",
+            measurementId: "G-89Z8WBJ3R0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Expose a global wrapper so app.js can call it without module issues
+        window.pushToFirebase = async function(processedData) {
+            try {
+                // Add an explicit update timestamp to enable simple listener detection
+                processedData._lastUpdate = Date.now();
+                await set(ref(db, 'attendanceData'), processedData);
+                console.log("Data successfully pushed to Firebase RTDB.");
+                return true;
+            } catch (error) {
+                console.error("Firebase push failed:", error);
+                return false;
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendanceIQ - Analytics</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Sidebar specific smooth transitions */
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: rgba(79, 70, 229, 0.15);
+            color: #fff;
+            border-right: 3px solid var(--primary);
+        }
+
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            border-color: rgba(79, 70, 229, 0.4);
+        }
+
+        /* Chart constraints */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        #emptyState {
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+
+<body class="antialiased text-gray-100 flex h-screen overflow-hidden bg-slate-900">
+
+    <!-- Background Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2" style="bottom: 10%; right: 20%; animation-delay: -2s;"></div>
+    </div>
+
+    <!-- Empty State Overlay (In case data isn't in localstorage) -->
+    <div id="emptyState"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-[8px] hidden">
+        <div class="glass-panel p-10 text-center max-w-md w-full">
+            <i class="fa-solid fa-file-excel text-5xl text-red-400 mb-6"></i>
+            <h2 class="text-2xl font-bold mb-2">No Data Found</h2>
+            <p class="text-gray-400 mb-8 text-sm">Please upload an attendance sheet first to view the analytics
+                dashboard.</p>
+            <a href="index.html"
+                class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20 inline-block">
+                Go to Upload Page
+            </a>
+        </div>
+    </div>
+
+    <!-- Late Modal -->
+    <div id="lateModal"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-[8px] hidden opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-3xl m-4 flex flex-col max-h-[80vh] shadow-2xl relative transform scale-95 transition-transform duration-300"
+            id="lateModalContent">
+            <button onclick="closeLateModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="p-6 border-b border-white/10 shrink-0">
+                <h3 class="text-xl font-bold flex items-center gap-3">
+                    <span
+                        class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400">
+                        <i class="fa-solid fa-clock"></i>
+                    </span>
+                    Late Arrivals Highlights
+                </h3>
+                <p class="text-sm text-gray-400 mt-2">Displaying all employees who arrived after the 8:00 AM duty time.
+                </p>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <div class="overflow-x-auto ring-1 ring-white/5 rounded-xl">
+                    <table class="w-full text-left bg-slate-900/30">
+                        <thead class="bg-slate-800/80 sticky top-0 border-b border-white/5">
+                            <tr>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Employee
+                                </th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Date</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Arrival
+                                    Time</th>
+                                <th
+                                    class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase border-r border-white/10">
+                                    Minutes Late</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lateTableBody" class="divide-y divide-white/5">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Calendar Modal -->
+    <div id="calendarModal"
+        class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/80 backdrop-blur-[8px] hidden opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-4xl m-4 flex flex-col shadow-2xl relative transform scale-95 transition-transform duration-300"
+            id="calendarModalContent">
+            <button onclick="closeCalendarModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="p-6 border-b border-white/10 shrink-0 flex items-center gap-4">
+                <div id="calAvatar"
+                    class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner bg-indigo-500">
+                    --
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white" id="calEmpName">Employee Name</h3>
+                    <p class="text-sm text-gray-400 mt-0.5" id="calEmpId">EMP-ID • Section Name</p>
+                </div>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+
+                <!-- Legend & Summary Container -->
+                <div class="mb-6 flex flex-col md:flex-row md:items-start justify-between gap-6">
+                    <!-- Legend -->
+                    <div class="flex flex-wrap gap-4 text-sm">
+                        <div class="flex items-center gap-2"><span
+                                class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></span> <span
+                                class="text-gray-300">Present</span></div>
+                        <div class="flex items-center gap-2"><span
+                                class="w-3 h-3 rounded-full bg-orange-500/20 border border-orange-500/50"></span> <span
+                                class="text-gray-300">Late</span></div>
+                        <div class="flex items-center gap-2"><span
+                                class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></span> <span
+                                class="text-gray-300">Absent</span></div>
+                        <div class="flex items-center gap-2"><span
+                                class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></span> <span
+                                class="text-gray-300">Leave (CL, SL, AL)</span></div>
+                        <div class="flex items-center gap-2"><span
+                                class="w-3 h-3 rounded-full bg-slate-500/20 border border-slate-500/50"></span> <span
+                                class="text-gray-300">Holiday/Off</span></div>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div class="flex gap-4 shrink-0 bg-slate-900/50 p-3 rounded-xl ring-1 ring-white/5 shadow-inner">
+                        <div class="text-center px-3 border-r border-white/10 last:border-0 pointer-events-none">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide font-bold mb-1">Present</p>
+                            <p class="text-lg font-mono font-bold text-green-400" id="calSumPresent">-</p>
+                        </div>
+                        <div class="text-center px-3 border-r border-white/10 last:border-0 pointer-events-none">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide font-bold mb-1">Late</p>
+                            <p class="text-lg font-mono font-bold text-orange-400" id="calSumLate">-</p>
+                        </div>
+                        <div class="text-center px-3 border-r border-white/10 last:border-0 pointer-events-none">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide font-bold mb-1">Absent</p>
+                            <p class="text-lg font-mono font-bold text-red-400" id="calSumAbsent">-</p>
+                        </div>
+                        <div class="text-center px-3 border-r border-white/10 last:border-0 pointer-events-none">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide font-bold mb-1">Leave</p>
+                            <p class="text-lg font-mono font-bold text-yellow-400" id="calSumLeave">-</p>
+                        </div>
+                        <div class="text-center px-3 pointer-events-none">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide font-bold mb-1">Holiday</p>
+                            <p class="text-lg font-mono font-bold text-slate-400" id="calSumHoliday">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="grid grid-cols-7 gap-2 mb-2">
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Sun</div>
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Mon</div>
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Tue</div>
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Wed</div>
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Thu</div>
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Fri</div>
+                    <div class="text-center text-xs font-semibold text-gray-500 py-2">Sat</div>
+                </div>
+                <!-- Days injected via JS -->
+                <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Stats Modal -->
+    <div id="statsModal"
+        class="fixed inset-0 z-[65] flex items-center justify-center bg-slate-900/80 backdrop-blur-[8px] hidden opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl m-4 flex flex-col max-h-[80vh] shadow-2xl relative transform scale-95 transition-transform duration-300"
+            id="statsModalContent">
+            <button onclick="closeStatsModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="p-6 border-b border-white/10 shrink-0">
+                <h3 class="text-xl font-bold flex items-center gap-3" id="statsModalTitle">
+                    <span id="statsModalIcon" class="w-10 h-10 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-chart-bar"></i>
+                    </span>
+                    <span id="statsModalHeaderText">Stats Detail</span>
+                </h3>
+                <p class="text-sm text-gray-400 mt-2" id="statsModalDesc">Detailed breakdown.</p>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <div class="overflow-x-auto ring-1 ring-white/5 rounded-xl">
+                    <table class="w-full text-left bg-slate-900/30">
+                        <thead class="bg-slate-800/80 sticky top-0 border-b border-white/5" id="statsModalThead">
+                            <!-- Populated dynamically -->
+                        </thead>
+                        <tbody id="statsTableBody" class="divide-y divide-white/5">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Layout -->
+    <aside
+        class="w-64 glass-panel border-r border-y-0 border-l-0 rounded-none h-full flex flex-col justify-between hidden md:flex shrink-0 relative z-20 shadow-2xl">
+        <div>
+            <div class="p-6 border-b border-white/5 flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-chart-pie text-xl text-white"></i>
+                </div>
+                <h2 class="font-bold text-xl tracking-tight">Attendance<span class="text-indigo-400">IQ</span></h2>
+            </div>
+
+            <nav class="mt-6 flex flex-col gap-1">
+                <a href="#"
+                    class="sidebar-link active flex items-center gap-4 py-3 px-6 text-sm font-medium text-gray-300">
+                    <i class="fa-solid fa-border-all w-5 text-indigo-400"></i> Dashboard
+                </a>
+                <a href="#employees"
+                    class="sidebar-link flex items-center gap-4 py-3 px-6 text-sm font-medium text-gray-400 hover:text-gray-200">
+                    <i class="fa-solid fa-users w-5"></i> Employees
+                </a>
+                <a href="#units"
+                    class="sidebar-link flex items-center gap-4 py-3 px-6 text-sm font-medium text-gray-400 hover:text-gray-200">
+                    <i class="fa-solid fa-building w-5"></i> Sections
+                </a>
+            </nav>
+        </div>
+
+        <div class="p-6 border-t border-white/5">
+            <div class="glass-panel p-4 rounded-xl border border-white/5 bg-slate-800/40 text-center mb-4">
+                <p class="text-xs text-gray-400 mb-2">Need to analyze new data?</p>
+                <a href="index.html"
+                    class="block w-full py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium text-white transition-colors border border-slate-600">
+                    <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> Upload New File
+                </a>
+            </div>
+            <div class="flex items-center gap-3">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=4F46E5&color=fff" alt="User"
+                    class="w-9 h-9 rounded-full ring-2 ring-indigo-500/50">
+                <div>
+                    <p class="text-sm font-medium">Admin User</p>
+                    <p class="text-xs text-gray-500">HR Manager</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
+
+        <!-- Header -->
+        <header
+            class="h-20 glass-panel rounded-none border-x-0 border-t-0 px-8 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-xl font-semibold">Executive Overview</h1>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <!-- Company Calendar Button -->
+                <button id="btnCompanyCalendar"
+                    class="hidden md:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg shadow-indigo-500/20 border border-indigo-500/50">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Company Calendar</span>
+                </button>
+
+                <!-- Month Select Dropdown -->
+                <div class="hidden md:flex items-center gap-2">
+                    <label for="monthFilter" class="text-sm font-medium text-gray-400">Month:</label>
+                    <div class="relative">
+                        <select id="monthFilter"
+                            class="appearance-none bg-slate-800/50 border border-white/5 font-medium rounded-xl px-4 py-2 pr-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer transition-colors hover:bg-slate-700/50">
+                            <option value="all">Total Month</option>
+                            <!-- Populated dynamically via JS -->
+                        </select>
+                        <i
+                            class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Section Select Dropdown -->
+                <div class="hidden md:flex items-center gap-2">
+                    <label for="unitFilter" class="text-sm font-medium text-gray-400">Section:</label>
+                    <div class="relative">
+                        <select id="unitFilter"
+                            class="appearance-none bg-slate-800/50 border border-white/5 font-medium rounded-xl px-4 py-2 pr-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer transition-colors hover:bg-slate-700/50">
+                            <option value="all">All Sections</option>
+                            <!-- Populated dynamically via JS -->
+                        </select>
+                        <i
+                            class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Theme Toggle Support -->
+                <button id="themeToggleBtn" onclick="toggleTheme()"
+                    class="hidden lg:flex w-10 h-10 items-center justify-center rounded-full glass-panel text-gray-400 hover:text-gray-900 transition-all shadow-lg hover:scale-110 active:scale-95 border border-white/10 dark:border-white/10">
+                    <i class="fa-solid fa-sun text-yellow-500"></i>
+                    <i class="fa-solid fa-moon text-indigo-900 hidden"></i>
+                </button>
+
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <i
+                            class="fa-regular fa-bell text-gray-400 hover:text-white cursor-pointer transition-colors text-lg"></i>
+                        <span
+                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full border border-slate-900"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable content area -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+
+            <!-- Dashboard KPIs -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+
+                <!-- KPI 1 -->
+                <div class="glass-panel p-5 card-hover cursor-pointer group hover:ring-1 hover:ring-indigo-500/50 transition-all"
+                    onclick="openStatsModal('employees')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-widest">Total Employees</p>
+                            <h3 class="text-3xl font-bold mt-1 text-white" id="kpi-total-emp">-</h3>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                            <i class="fa-solid fa-users text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI 2 -->
+                <div class="glass-panel p-5 card-hover cursor-pointer group hover:ring-1 hover:ring-green-500/50 transition-all"
+                    onclick="openStatsModal('rate')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-widest">Overall Rate</p>
+                            <h3 class="text-3xl font-bold mt-1 text-white" id="kpi-rate">-</h3>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400">
+                            <i class="fa-solid fa-arrow-trend-up text-lg"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-green-400 font-medium flex items-center gap-1 mt-2">
+                        <i class="fa-solid fa-caret-up"></i> Based on total records
+                    </p>
+                </div>
+
+                <!-- KPI 3: Lates -->
+                <div id="late-kpi-card"
+                    class="glass-panel p-5 card-hover cursor-pointer ring-1 ring-orange-500/30 hover:ring-orange-500/60 transition-all bg-gradient-to-br from-slate-800/80 to-slate-900/80 group"
+                    onclick="openLateModal()">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p
+                                class="text-xs font-medium text-gray-400 uppercase tracking-widest group-hover:text-orange-300 transition-colors">
+                                Total Late Entries</p>
+                            <h3 class="text-3xl font-bold mt-1 text-white" id="kpi-late">-</h3>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-clock text-lg"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-orange-400 font-medium flex items-center gap-1 mt-2 group-hover:underline">
+                        <i class="fa-solid fa-eye"></i> View who was late
+                    </p>
+                </div>
+
+                <!-- KPI 4 -->
+                <div class="glass-panel p-5 card-hover cursor-pointer group hover:ring-1 hover:ring-purple-500/50 transition-all"
+                    onclick="openStatsModal('sections')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-widest">Active Sections</p>
+                            <h3 class="text-3xl font-bold mt-1 text-white" id="kpi-units">-</h3>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
+                            <i class="fa-solid fa-location-dot text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Main Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Line Chart -->
+                <div class="glass-panel p-6 lg:col-span-2 flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold">Attendance Trend</h3>
+                        <div class="flex gap-2">
+                            <span class="flex items-center gap-1.5 text-xs text-gray-400"><span
+                                    class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Present</span>
+                            <span class="flex items-center gap-1.5 text-xs text-gray-400"><span
+                                    class="w-2.5 h-2.5 rounded-full bg-pink-500"></span> Absent</span>
+                        </div>
+                    </div>
+                    <div class="chart-container flex-1">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart -->
+                <div class="glass-panel p-6 flex flex-col">
+                    <h3 class="text-lg font-semibold mb-6">Section Distribution</h3>
+                    <div class="chart-container flex-1 flex items-center justify-center relative">
+                        <canvas id="unitPieChart"></canvas>
+                        <!-- Inner Text -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span class="text-2xl font-bold text-white" id="pieCenterText">-</span>
+                            <span class="text-xs text-gray-400">Sections</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Bar Chart -->
+                <div class="glass-panel p-6 flex flex-col">
+                    <h3 class="text-lg font-semibold mb-6">Section Attendance Rate (%)</h3>
+                    <div class="chart-container flex-1">
+                        <canvas id="unitBarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Quick Insights Panel -->
+                <div class="glass-panel p-6">
+                    <h3 class="text-lg font-semibold mb-6">AI Insights</h3>
+
+                    <div class="space-y-4" id="insightsContainer">
+                        <!-- Populated dynamically via JS -->
+                        <div
+                            class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex gap-4 animate-pulse">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex-shrink-0"></div>
+                            <div class="flex-1 space-y-2 py-1">
+                                <div class="h-2 bg-indigo-500/20 rounded w-3/4"></div>
+                                <div class="h-2 bg-indigo-500/20 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Detail Table -->
+            <div class="glass-panel p-6 overflow-hidden flex flex-col">
+                <div
+                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 cursor-default">
+                    <h3 class="text-lg font-semibold" id="employees">Employee Analytics Data</h3>
+
+                    <div class="flex gap-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <i
+                                class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <input type="text" id="employeeSearch" placeholder="Search by Employee ID..."
+                                class="w-full pl-9 pr-4 py-2 bg-slate-800/50 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-white transition-all">
+                        </div>
+                        <button
+                            class="px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-slate-700 transition-colors"
+                            title="Export Data">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto ring-1 ring-white/5 rounded-xl">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-800/80">
+                            <tr>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Employee
+                                </th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Section
+                                </th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Total Days
+                                </th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Present
+                                </th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Absent</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 tracking-wider uppercase">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody" class="divide-y divide-white/5 bg-slate-900/30">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between text-sm text-gray-400">
+                    <span id="tableInfo">Showing 0 entries</span>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 bg-slate-800 rounded hover:bg-slate-700 transition"
+                            id="prevPage">Prev</button>
+                        <button class="px-3 py-1 bg-slate-800 rounded hover:bg-slate-700 transition"
+                            id="nextPage">Next</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Company Calendar Modal -->
+    <div id="companyCalendarModal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-[8px] z-50 hidden flex flex-col items-center justify-center p-4">
+
+        <div class="glass-panel w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col animate-modal-in border border-white/10"
+            style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);">
+
+            <!-- Modal Header -->
+            <div class="px-6 py-5 border-b border-white/10 flex justify-between items-center shrink-0 bg-white/[0.02]">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
+                        <i class="fa-solid fa-calendar-days text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white tracking-tight">Company Calendar</h2>
+                        <p class="text-sm text-indigo-300/80 mt-0.5"><i
+                                class="fa-solid fa-map-location-dot mr-1 text-xs"></i> Bangladesh Public & Official
+                            Holidays</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <!-- Year Switcher -->
+                    <div class="flex items-center bg-slate-800/80 rounded-xl p-1.5 border border-white/10 shadow-inner">
+                        <button id="calPrevYear"
+                            class="w-8 h-8 flex justify-center items-center text-gray-400 hover:text-white hover:bg-slate-700/80 rounded-lg transition-all"><i
+                                class="fa-solid fa-chevron-left text-sm"></i></button>
+                        <span id="calCurrentYear"
+                            class="px-5 font-bold text-white text-lg min-w-[80px] text-center tracking-wider">2026</span>
+                        <button id="calNextYear"
+                            class="w-8 h-8 flex justify-center items-center text-gray-400 hover:text-white hover:bg-slate-700/80 rounded-lg transition-all"><i
+                                class="fa-solid fa-chevron-right text-sm"></i></button>
+                    </div>
+
+                    <button id="closeCompanyCalendar"
+                        class="text-gray-400 hover:text-white hover:bg-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-all bg-white/5 border border-white/5">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (12 Months Grid) -->
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative">
+                <!-- Decorative background elements -->
+                <div
+                    class="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none">
+                </div>
+                <div
+                    class="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none">
+                </div>
+
+                <!-- Legend -->
+                <div
+                    class="flex flex-wrap gap-6 mb-8 justify-center text-sm relative z-10 glass-panel max-w-fit mx-auto px-6 py-3 rounded-full border border-white/5 bg-slate-800/50">
+                    <div class="flex items-center gap-2"><span
+                            class="w-3.5 h-3.5 rounded-full bg-red-500/20 border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)] block"></span>
+                        <span class="text-gray-300 font-medium">Public Holiday</span>
+                    </div>
+                    <div class="flex items-center gap-2"><span
+                            class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-600 block"></span> <span
+                            class="text-gray-400">Working Day</span></div>
+                    <div class="flex items-center gap-2"><span
+                            class="w-3.5 h-3.5 rounded-full bg-slate-700/50 border border-slate-600 block opacity-50"></span>
+                        <span class="text-gray-500 line-through">Weekend (Fri/Sat)</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold ml-2">
+                        <i class="fa-solid fa-star text-[10px]"></i> Today
+                    </div>
+                </div>
+
+                <!-- 12-Month Grid Container -->
+                <div id="companyCalendarGrid"
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
+                    <!-- Months generated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="charts.js"></script>
+
+    <!-- Firebase SDK Setup & Listener -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcjbR7Qu7M-RnHUtLJ9zeehILqQHYLw4E",
+            authDomain: "whatsapp-c10ef.firebaseapp.com",
+            databaseURL: "https://whatsapp-c10ef-default-rtdb.firebaseio.com",
+            projectId: "whatsapp-c10ef",
+            storageBucket: "whatsapp-c10ef.firebasestorage.app",
+            messagingSenderId: "675053106773",
+            appId: "1:675053106773:web:b7078468691a07ecfec6dc",
+            measurementId: "G-89Z8WBJ3R0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const dataRef = ref(db, 'attendanceData');
+        onValue(dataRef, (snapshot) => {
+            const fbData = snapshot.val();
+            if (fbData && fbData._lastUpdate) {
+                // Check if the firebase data is newer than our local data
+                let localData = null;
+                try {
+                    const rawLocal = localStorage.getItem('attendanceDashboardData');
+                    if (rawLocal) {
+                        localData = JSON.parse(rawLocal);
+                    }
+                } catch (e) {
+                    console.error("Error reading local data in Firebase listener", e);
+                }
+
+                const localUpdate = localData && localData._lastUpdate ? localData._lastUpdate : 0;
+
+                // If firebase has a newer dataset, update local storage and reload the dashboard
+                if (fbData._lastUpdate > localUpdate) {
+                    console.log("New data detected from Firebase. Syncing and reloading...");
+                    localStorage.setItem('attendanceDashboardData', JSON.stringify(fbData));
+
+                    // Add a tiny delay to ensure storage write finishes before reload and notify user
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,421 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #4F46E5;
+  /* Indigo 600 */
+  --primary-hover: #4338CA;
+  --bg-dark: #0f172a;
+  /* Slate 900 */
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 1.5rem;
+}
+
+/* Animated subtle background blobs */
+.bg-blobs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: float 20s infinite alternate ease-in-out;
+}
+
+.blob-1 {
+  background: #4F46E5;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  top: -10%;
+  left: -10%;
+}
+
+.blob-2 {
+  background: #ec4899;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  bottom: -20%;
+  right: -10%;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  background: #8b5cf6;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  top: 40%;
+  left: 50%;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Upload Interface specific */
+.upload-area {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.upload-area.dragover {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.1);
+  transform: scale(1.02);
+}
+
+.upload-icon {
+  transition: transform 0.3s ease;
+}
+
+.upload-area:hover .upload-icon {
+  transform: translateY(-5px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Loader */
+.loader-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 3px solid var(--primary);
+  width: 24px;
+  height: 24px;
+  -webkit-animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pre-Dashboard Table */
+.preview-table th {
+  background-color: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+}
+
+.preview-table td {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.875rem;
+}
+
+/* Yellow Theme Overrides */
+body.theme-yellow {
+  --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #fff7d6 100%);
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  color: #000 !important;
+}
+
+body.theme-yellow .bg-blobs .blob-1 {
+  background: #fde047;
+}
+
+body.theme-yellow .bg-blobs .blob-2 {
+  background: #fef08a;
+}
+
+body.theme-yellow .bg-blobs .blob-3 {
+  background: #ffffff;
+}
+
+/* Force text colors to total black */
+body.theme-yellow,
+body.theme-yellow .text-white,
+body.theme-yellow .text-gray-100,
+body.theme-yellow .text-gray-200,
+body.theme-yellow .text-gray-300,
+body.theme-yellow .text-gray-400,
+body.theme-yellow .text-gray-500,
+body.theme-yellow .text-indigo-300,
+body.theme-yellow .text-indigo-400,
+body.theme-yellow .text-red-100,
+body.theme-yellow .text-red-400\/80 {
+  color: #000 !important;
+}
+
+/* Specific background and border overrides */
+body.theme-yellow .bg-slate-900,
+body.theme-yellow .bg-slate-800,
+body.theme-yellow .bg-slate-700 {
+  background-color: transparent !important;
+}
+
+body.theme-yellow .glass-panel.bg-slate-800\/40,
+body.theme-yellow .glass-panel.bg-slate-800\/50,
+body.theme-yellow .bg-slate-900\/50,
+body.theme-yellow .bg-slate-900\/80,
+body.theme-yellow .bg-slate-800\/80,
+body.theme-yellow .bg-slate-900\/30 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+body.theme-yellow .border-white\/5,
+body.theme-yellow .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.theme-yellow .ring-white\/5 {
+  --tw-ring-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-yellow .divide-white\/5> :not([hidden])~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.theme-yellow select,
+body.theme-yellow input {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  color: #000 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+body.theme-yellow .hover\:bg-slate-700:hover,
+body.theme-yellow .hover\:bg-slate-800\/50:hover,
+body.theme-yellow .hover\:bg-slate-800:hover {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Sidebar fixes */
+body.theme-yellow .sidebar-link:hover,
+body.theme-yellow .sidebar-link.active {
+  background: rgba(250, 204, 21, 0.2) !important;
+  border-right-color: #eab308 !important;
+  color: #000 !important;
+}
+
+/* Modals */
+body.theme-yellow #lateModalContent,
+body.theme-yellow #calendarModalContent,
+body.theme-yellow #statsModalContent,
+body.theme-yellow #companyCalendarModal>div {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+body.theme-yellow .hover\:text-white:hover {
+  color: #000 !important;
+}
+
+/* Calendar deep green and deep ash overrides */
+body.theme-yellow .cal-empty {
+  background-color: #e2e8f0 !important;
+  /* deep ash background */
+  border-color: #cbd5e1 !important;
+  border-style: solid !important;
+}
+
+body.theme-yellow .cal-present {
+  background-color: #e6fcf5 !important;
+  border-color: #bbf7d0 !important;
+  color: #16a34a !important;
+  /* Deep green */
+}
+
+body.theme-yellow .cal-present .shadow-inner {
+  background-color: #ffffff !important;
+  color: #16a34a !important;
+  /* Deep green icon */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-yellow .cal-holiday,
+body.theme-yellow .cal-leave {
+  background-color: #f1f5f9 !important;
+  /* Light ash box */
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+  /* Deep ash text */
+}
+
+body.theme-yellow .cal-holiday .shadow-inner,
+body.theme-yellow .cal-leave .shadow-inner {
+  background-color: #ffffff !important;
+  color: #64748b !important;
+  /* Deep ash icon */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-yellow .cal-absent {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #be123c !important;
+  /* Deep red text/icon */
+}
+
+body.theme-yellow .cal-lwp {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+  /* Red */
+}
+
+body.theme-yellow .cal-al {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+  /* Deep blue text/icon */
+}
+
+body.theme-yellow .cal-cl {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  /* Black/Deep slate */
+}
+
+body.theme-yellow .cal-sl {
+  background-color: #fdf2f8 !important;
+  border-color: #fbcfe8 !important;
+  color: #db2777 !important;
+  /* Pink text/icon */
+}
+
+body.theme-yellow .cal-absent .shadow-inner,
+body.theme-yellow .cal-lwp .shadow-inner,
+body.theme-yellow .cal-al .shadow-inner,
+body.theme-yellow .cal-cl .shadow-inner,
+body.theme-yellow .cal-sl .shadow-inner {
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-yellow .cal-absent .shadow-inner {
+  color: #be123c !important;
+}
+
+/* Deep red */
+body.theme-yellow .cal-lwp .shadow-inner {
+  color: #dc2626 !important;
+}
+
+/* Red */
+body.theme-yellow .cal-al .shadow-inner {
+  color: #1d4ed8 !important;
+}
+
+/* Deep blue */
+body.theme-yellow .cal-cl .shadow-inner {
+  color: #0f172a !important;
+}
+
+/* Black */
+body.theme-yellow .cal-sl .shadow-inner {
+  color: #db2777 !important;
+}
+
+/* Pink */
+
+/* Gold Late KPI Card Override */
+body.theme-yellow #late-kpi-card {
+  background: #FFD700 !important;
+  /* Pure Gold */
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.theme-yellow #late-kpi-card * {
+  color: #000 !important;
+  /* Black text on everything inside */
+}
+
+body.theme-yellow #late-kpi-card .bg-orange-500\/20 {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  /* Subtle dark background for the icon container */
+}
+
+/* Gold Top 4 Rows Override */
+.top4-row {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.15) 0%, transparent 100%) !important;
+  border-left: 4px solid #FFD700 !important;
+}
+
+body.theme-yellow .top4-row {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.4) 0%, transparent 100%) !important;
+  border-left: 4px solid #eab308 !important;
+  /* Darker yellow for contrast on light bg */
+}
+
+body.theme-yellow .top4-row:hover {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.6) 0%, transparent 100%) !important;
+}
