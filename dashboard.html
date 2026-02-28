@@ -395,7 +395,7 @@
 
         <!-- Header -->
         <header
-            class="h-20 glass-panel rounded-none border-x-0 border-t-0 px-8 flex items-center justify-between shrink-0">
+            class="relative z-[60] h-20 glass-panel rounded-none border-x-0 border-t-0 px-8 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-4">
                 <button class="md:hidden text-gray-400 hover:text-white">
                     <i class="fa-solid fa-bars text-xl"></i>
@@ -448,10 +448,36 @@
 
                 <div class="flex items-center gap-4">
                     <div class="relative">
-                        <i
-                            class="fa-regular fa-bell text-gray-400 hover:text-white cursor-pointer transition-colors text-lg"></i>
-                        <span
-                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full border border-slate-900"></span>
+                        <button id="notificationBellBtn" onclick="toggleNotificationDropdown()"
+                            class="relative focus:outline-none flex items-center justify-center pointer-events-auto">
+                            <i
+                                class="fa-regular fa-bell text-gray-400 hover:text-white cursor-pointer transition-colors text-lg"></i>
+                            <span id="notificationBadge"
+                                class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-slate-500 rounded-full border border-slate-900 hidden"></span>
+                        </button>
+
+                        <!-- Notification Dropdown -->
+                        <div id="notificationDropdown"
+                            class="absolute right-0 mt-3 w-72 glass-panel !bg-yellow-400/95 !border-yellow-300 backdrop-blur-3xl rounded-xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.5)] border hidden transform scale-95 opacity-0 origin-top-right transition-all duration-200 z-50">
+                            <div class="p-3 border-b border-yellow-500/50 bg-yellow-500/20 rounded-t-xl">
+                                <h3 class="text-black font-black text-sm">System Status</h3>
+                            </div>
+                            <div class="p-4 rounded-b-xl">
+                                <div class="flex items-start gap-4">
+                                    <div id="uploadStatusIcon"
+                                        class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-yellow-100/50 text-black shadow-inner mt-0.5 border border-yellow-400">
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                    </div>
+                                    <div>
+                                        <h4 id="uploadStatusTitle" class="text-sm font-black text-black mb-0.5 mt-0.5">
+                                            Checking status...</h4>
+                                        <p id="uploadStatusTime" class="text-xs text-black font-bold leading-relaxed">
+                                            Fetching last
+                                            upload time</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

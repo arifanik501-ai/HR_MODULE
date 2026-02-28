@@ -140,7 +140,73 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial Load (All Units, All Months)
     applyFilters('all', 'all', data);
     setupTableInteractions();
+    initNotificationBell(data);
 
+
+    function initNotificationBell(dashData) {
+        const badge = document.getElementById('notificationBadge');
+        const title = document.getElementById('uploadStatusTitle');
+        const timeEl = document.getElementById('uploadStatusTime');
+        const iconContainer = document.getElementById('uploadStatusIcon');
+
+        if (!dashData || !dashData._lastUpdate) {
+            if (badge) {
+                badge.classList.remove('hidden');
+                badge.className = "absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.8)]";
+            }
+            if (title) {
+                title.innerText = "No Data Uploaded";
+                title.className = "text-sm font-black text-black mb-0.5 mt-0.5";
+            }
+            if (timeEl) timeEl.innerText = "Please upload an attendance file to view tracking details.";
+            if (iconContainer) {
+                iconContainer.className = "w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-red-100 border border-red-400 text-black shadow-inner mt-0.5";
+                iconContainer.innerHTML = '<i class="fa-solid fa-file-excel text-lg"></i>';
+            }
+            return;
+        }
+
+        const lastUpdateMs = dashData._lastUpdate;
+        const uploadDate = new Date(lastUpdateMs);
+        const now = new Date();
+
+        // Check if uploaded today
+        const isToday = uploadDate.getDate() === now.getDate() &&
+            uploadDate.getMonth() === now.getMonth() &&
+            uploadDate.getFullYear() === now.getFullYear();
+
+        // Format Date and Time
+        const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+        const dateStr = uploadDate.toLocaleDateString('en-US', dateOptions);
+        const timeStr = uploadDate.toLocaleTimeString('en-US', timeOptions);
+
+        if (badge) badge.classList.remove('hidden');
+
+        if (isToday) {
+            if (badge) badge.className = "absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(34,197,94,0.8)]";
+            if (title) {
+                title.innerText = "Data Uploaded Today";
+                title.className = "text-sm font-black text-black mb-0.5 mt-0.5";
+            }
+            if (iconContainer) {
+                iconContainer.className = "w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 border border-emerald-400 text-black shadow-inner mt-0.5";
+                iconContainer.innerHTML = '<i class="fa-solid fa-check-circle text-lg"></i>';
+            }
+            if (timeEl) timeEl.innerText = `Today at ${timeStr}`;
+        } else {
+            if (badge) badge.className = "absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(249,115,22,0.8)] animate-pulse";
+            if (title) {
+                title.innerText = "Data Not Uploaded Today";
+                title.className = "text-sm font-black text-black mb-0.5 mt-0.5";
+            }
+            if (iconContainer) {
+                iconContainer.className = "w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-orange-100 border border-orange-400 text-black shadow-inner mt-0.5";
+                iconContainer.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-lg"></i>';
+            }
+            if (timeEl) timeEl.innerText = `Last upload: ${dateStr} at ${timeStr}`;
+        }
+    }
 
     // --- Company Calendar Logic --- //
     const btnCompanyCalendar = document.getElementById('btnCompanyCalendar');
@@ -1467,6 +1533,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const closeBtn = document.getElementById('closeCompanyCalendar');
             if (closeBtn) closeBtn.click();
         }
+
+        // Close notification dropdown if clicking outside
+        const notifDropdown = document.getElementById('notificationDropdown');
+        const notifBellBtn = document.getElementById('notificationBellBtn');
+        if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+            if (!notifDropdown.contains(e.target) && (!notifBellBtn || !notifBellBtn.contains(e.target))) {
+                notifDropdown.classList.remove('scale-100', 'opacity-100');
+                notifDropdown.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    notifDropdown.classList.add('hidden');
+                }, 200);
+            }
+        }
     });
+
+    window.toggleNotificationDropdown = function () {
+        const notifDropdown = document.getElementById('notificationDropdown');
+        if (!notifDropdown) return;
+
+        if (notifDropdown.classList.contains('hidden')) {
+            notifDropdown.classList.remove('hidden');
+            void notifDropdown.offsetWidth;
+            notifDropdown.classList.remove('scale-95', 'opacity-0');
+            notifDropdown.classList.add('scale-100', 'opacity-100');
+        } else {
+            notifDropdown.classList.remove('scale-100', 'opacity-100');
+            notifDropdown.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                notifDropdown.classList.add('hidden');
+            }, 200);
+        }
+    };
 
 });
