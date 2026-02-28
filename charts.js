@@ -8,6 +8,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let chartInstances = {};
 
+    const pinnedEmployees = [
+        'arif ahmed anik',
+        'bithi rani das',
+        'md takbir hossain',
+        'mst nafija islam',
+        'md. sayful islam',
+        'md sayful islam',
+        'sayful islam',
+        'rohomot mollah',
+        'md. saiful islam',
+        'md.saiful islam',
+        'md saiful islam',
+        'saiful islam'
+    ];
+
     window.toggleTheme = function () {
         const isYellow = document.body.classList.toggle('theme-yellow');
         updateThemeToggleButton(isYellow);
@@ -90,10 +105,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (monthFilter && data.payrollMonths) {
+        const mNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         data.payrollMonths.forEach(m => {
             const option = document.createElement('option');
             option.value = m;
-            option.textContent = m;
+
+            // Format to show 26th to 25th cycle
+            let idx = mNames.indexOf(m);
+            if (idx !== -1) {
+                let prevIdx = idx === 0 ? 11 : idx - 1;
+                let prevMonthShort = mNames[prevIdx].substring(0, 3);
+                let currMonthShort = m.substring(0, 3);
+                option.textContent = `${m} (${prevMonthShort} 26 - ${currMonthShort} 25)`;
+            } else {
+                option.textContent = m;
+            }
+
             monthFilter.appendChild(option);
         });
     }
@@ -404,13 +431,21 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
+        window.bonusEligible = allEmployees.filter(emp =>
+            emp.totalDays > 0 &&
+            emp.presentDays === emp.totalDays &&
+            emp.lateDays === 0 &&
+            !pinnedEmployees.includes(emp.name.toLowerCase().trim())
+        );
+
         const filteredKpis = {
             totalEmployees: allEmployees.length,
             totalPresent: tPresent,
             totalAbsent: tAbsent,
             totalLateEntries: tLateEntries,
             overallRate: tRecords > 0 ? ((tPresent / tRecords) * 100).toFixed(1) : 0,
-            totalActiveBranches: filteredBranches.length
+            totalActiveBranches: filteredBranches.length,
+            bonusCount: window.bonusEligible.length
         };
 
         let trendData = { labels: [], present: [], absent: [] };
@@ -461,12 +496,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const rateEl = document.getElementById('kpi-rate');
         const lateEl = document.getElementById('kpi-late');
         const branchesEl = document.getElementById('kpi-units');
+        const bonusEl = document.getElementById('kpi-bonus');
 
         animateValue(totalEmpEl, 0, kpis.totalEmployees, 1000);
 
         // Custom animation for percentage
         let startTS = null;
         const targetRate = parseFloat(kpis.overallRate);
+        const rateWave = document.getElementById('rate-liquid-bg');
+        if (rateWave) rateWave.style.setProperty('--fill-level', targetRate + '%');
+
         const rateStep = (ts) => {
             if (!startTS) startTS = ts;
             const prog = Math.min((ts - startTS) / 1000, 1);
@@ -477,6 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         animateValue(lateEl, 0, kpis.totalLateEntries || 0, 1000);
         animateValue(branchesEl, 0, kpis.totalActiveBranches, 1000);
+        if (bonusEl) animateValue(bonusEl, 0, kpis.bonusCount || 0, 1000);
     }
 
     function initCharts(kpis, branchesData, trendData) {
@@ -706,13 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Prioritize specific employees to the top
-        const pinnedEmployees = [
-            'arif ahmed anik',
-            'bithi rani das',
-            'md takbir hossain',
-            'mst nafija islam'
-        ];
+        // Prioritize specific employees to the top (using global array)
 
         filteredEmployees.sort((a, b) => {
             const indexA = pinnedEmployees.indexOf(a.name.toLowerCase().trim());
@@ -731,21 +765,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentRows.forEach((emp, index) => {
             const absoluteIndex = startIndex + index;
-            // Only apply the gold highlight if they are explicitly in the pinned list
-            const isTop4 = pinnedEmployees.includes(emp.name.toLowerCase().trim());
+            const empNameLower = emp.name.toLowerCase().trim();
+            const isTop4 = pinnedEmployees.includes(empNameLower);
+            const isArif = empNameLower === 'arif ahmed anik';
 
             const tr = document.createElement('tr');
-            tr.className = "hover:bg-slate-800/50 transition-colors group cursor-pointer relative" + (isTop4 ? " top4-row" : "");
+
+            let rowClass = "hover:bg-slate-800/50 transition-colors group cursor-pointer relative";
+            if (isArif) {
+                rowClass += " arif-premium-row";
+            } else if (isTop4) {
+                rowClass += " top4-row";
+            }
+            tr.className = rowClass;
             tr.style.animation = `fade-in 0.3s ease-out ${index * 0.05}s both`;
             tr.onclick = () => openCalendarModal(emp);
 
             // Generate Avatar Initials or Photo
-            const isArif = emp.name.toLowerCase().trim() === 'arif ahmed anik';
+            const employeePhotos = {
+                'arif ahmed anik': 'arif.jpg',
+                'md takbir hossain': 'takbir.png',
+                'md. sayful islam': 'sayful.jpg',
+                'md sayful islam': 'sayful.jpg',
+                'sayful islam': 'sayful.jpg',
+                'rohomot mollah': 'rohomot.jpg',
+                'mst. nafija islam': 'nafija.jpg',
+                'mst nafija islam': 'nafija.jpg',
+                'nafija islam': 'nafija.jpg',
+                'bithi rani das': 'bithi.jpg',
+                'bithi rani': 'bithi.jpg',
+                'md. saiful islam': 'saiful.jpg',
+                'md.saiful islam': 'saiful.jpg',
+                'saiful islam': 'saiful.jpg'
+            };
+            const photoSrc = employeePhotos[empNameLower];
+
             const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
             const avatarColor = getAvatarColor(emp.name);
 
-            const avatarHtml = isArif
-                ? `<img src="arif.jpg" alt="${emp.name}" class="w-8 h-8 rounded-full object-cover ring-2 ring-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]">`
+            const avatarHtml = photoSrc
+                ? `<img src="${photoSrc}" alt="${emp.name}" class="w-8 h-8 rounded-full object-cover ring-2 ring-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]">`
                 : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-inner" style="background-color: ${avatarColor}">${initials}</div>`;
 
             // Format Rate Status Indicator
@@ -971,22 +1030,145 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     };
 
+    // Bonus Modal Logic
+    window.openBonusModal = function () {
+        const modal = document.getElementById('bonusModal');
+        const content = document.getElementById('bonusModalContent');
+        const tbody = document.getElementById('bonusTableBody');
+        const countSpan = document.getElementById('bonusModalCount');
+
+        tbody.innerHTML = '';
+
+        let targetEmployees = window.bonusEligible || [];
+        countSpan.innerText = targetEmployees.length;
+
+        if (targetEmployees.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500 font-medium">No eligible employees found for this criteria.</td></tr>`;
+        } else {
+            // Sort by branch, then alphabetically
+            targetEmployees.sort((a, b) => {
+                if (a.branch === b.branch) return a.name.localeCompare(b.name);
+                return a.branch.localeCompare(b.branch);
+            });
+
+            targetEmployees.forEach((emp, i) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/50 transition-colors cursor-pointer";
+                tr.style.animation = `fade-in 0.3s ease-out ${i * 0.05}s both`;
+                tr.onclick = () => window.openCalendarModal(emp); // Let them view the perfect calendar
+
+                tr.innerHTML = `
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs shadow-inner">
+                                ${emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-white">${emp.name}</p>
+                                <p class="text-[10px] text-gray-500">${emp.id}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4"><span class="px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs font-semibold text-gray-300 shadow-inner">${emp.branch}</span></td>
+                    <td class="p-4">
+                        <span class="text-green-400 font-bold">${emp.totalDays}</span> / <span class="text-gray-400 text-sm">${emp.totalDays}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        modal.classList.remove('hidden');
+        // trigger reflow
+        void modal.offsetWidth;
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+    };
+
+    window.closeBonusModal = function () {
+        const modal = document.getElementById('bonusModal');
+        const content = document.getElementById('bonusModalContent');
+
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    };
+
     // Calendar Modal Logic
     window.openCalendarModal = function (emp) {
         const modal = document.getElementById('calendarModal');
         const content = document.getElementById('calendarModalContent');
 
         // Setup Header
+        const empNameLower = emp.name.toLowerCase().trim();
+        const designations = {
+            'arif ahmed anik': 'In-Charge',
+            'md takbir hossain': 'Asst.Engineer',
+            'mst. nafija islam': 'Jr. Engineer',
+            'mst nafija islam': 'Jr. Engineer',
+            'nafija islam': 'Jr. Engineer',
+            'bithi rani das': 'Sub. Asst.Engineer',
+            'bithi rani': 'Sub. Asst.Engineer',
+            'md. sayful islam': 'Sr. Supervisor',
+            'md sayful islam': 'Sr. Supervisor',
+            'sayful islam': 'Sr. Supervisor',
+            'md. saiful islam': 'Sr. Supervisor',
+            'md.saiful islam': 'Sr. Supervisor',
+            'saiful islam': 'Sr. Supervisor'
+        };
+        const designation = designations[empNameLower];
+        const designationText = designation ? ` • ${designation}` : '';
+
         document.getElementById('calEmpName').innerText = emp.name;
-        document.getElementById('calEmpId').innerText = `${emp.id} • ${emp.branch}`;
+        document.getElementById('calEmpId').innerText = `${emp.id} • ${emp.branch}${designationText}`;
+
+        // Month Badge
+        const filterEl = document.getElementById('monthFilter');
+        const badgeEl = document.getElementById('calEmpMonthBadge');
+        if (filterEl && badgeEl) {
+            let mVal = filterEl.value;
+            if (mVal === 'all') {
+                badgeEl.innerText = 'Total Months (26-25 Cycle)';
+            } else {
+                const mNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                let idx = mNames.indexOf(mVal);
+                if (idx !== -1) {
+                    let prevIdx = idx === 0 ? 11 : idx - 1;
+                    badgeEl.innerText = `${mVal} (${mNames[prevIdx].substring(0, 3)} 26 - ${mVal.substring(0, 3)} 25)`;
+                } else {
+                    badgeEl.innerText = mVal;
+                }
+            }
+        }
 
         const avatar = document.getElementById('calAvatar');
-        const isArif = emp.name.toLowerCase().trim() === 'arif ahmed anik';
+        const employeePhotos = {
+            'arif ahmed anik': 'arif.jpg',
+            'md takbir hossain': 'takbir.png',
+            'md. sayful islam': 'sayful.jpg',
+            'md sayful islam': 'sayful.jpg',
+            'sayful islam': 'sayful.jpg',
+            'rohomot mollah': 'rohomot.jpg',
+            'mst. nafija islam': 'nafija.jpg',
+            'mst nafija islam': 'nafija.jpg',
+            'nafija islam': 'nafija.jpg',
+            'bithi rani das': 'bithi.jpg',
+            'bithi rani': 'bithi.jpg',
+            'md. saiful islam': 'saiful.jpg',
+            'md.saiful islam': 'saiful.jpg',
+            'saiful islam': 'saiful.jpg'
+        };
+        const photoSrc = employeePhotos[empNameLower];
 
-        if (isArif) {
+        if (photoSrc) {
+            avatar.className = "w-16 h-16 shrink-0 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner transition-all duration-300";
             avatar.style.backgroundColor = 'transparent';
-            avatar.innerHTML = `<img src="arif.jpg" alt="${emp.name}" class="w-full h-full rounded-full object-cover ring-2 ring-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)]">`;
+            avatar.innerHTML = `<img src="${photoSrc}" alt="${emp.name}" class="w-full h-full rounded-full object-cover ring-2 ring-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)]">`;
         } else {
+            avatar.className = "w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner transition-all duration-300";
             const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
             avatar.style.backgroundColor = getAvatarColor(emp.name);
             avatar.innerHTML = initials;
